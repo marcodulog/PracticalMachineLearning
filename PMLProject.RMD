@@ -2,7 +2,9 @@
 title: "Practical Machine Learning Project"
 author: "Marco Dulog"
 date: "February 20, 2018"
-output: html_document
+output: 
+  md_document:
+    variant: markdown_github
 ---
 
 ```{r setup, include=FALSE}
