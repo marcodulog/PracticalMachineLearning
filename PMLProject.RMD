@@ -1,0 +1,117 @@
+---
+title: "Practical Machine Learning Project"
+author: "Marco Dulog"
+date: "February 20, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Prediction Assignment
+
+The following report is a Coursera assignment to create a model that will accurate predict the "classe" of exercise provided.  We are asked to provide a report on:
+
+1) How the model was built?
+
+2) How we used cross validation?
+
+3) What the expected out of sample error was?
+
+4) Justify the choices made.
+
+5) Run the prediction against 20 different test cases.
+
+
+All the data provided was provided by the coursera assignment but was sourced from the following:
+
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+
+### Require libraries
+The following libraries are required for this evaluation
+```{r import, message=FALSE, cache=TRUE}
+require(caret)
+require(ggplot2)
+require(rpart)
+require(randomForest)
+require(dplyr)
+```
+
+### Importing data
+Load the training and testing data provided.  The data is pretty messy and needs to be cleaned up.  The first seven columns don't really work well with prediction and can be removed.  The remaining variables have varying degrees of NA values that can be removed as well.
+```{r, cache=TRUE}
+# import the training and testing dataset
+training<-read.csv("C:/Files/Coursera/R/PracticalMachineLearning/pml-training.csv",na.strings=c("NA", "#DIV/0!", ""))
+testing<-read.csv("C:/Files/Coursera/R/PracticalMachineLearning/pml-testing.csv",na.strings=c("NA", "#DIV/0!", ""))
+
+#prepare the original training dataset
+removeNA = sapply(1:dim(training)[2],function(x)sum(is.na(training[,x])))
+removeNACols = which(removeNA>0)
+training = training[,-removeNACols]
+training = training[,-c(1:7)]
+training$classe = factor(training$classe)
+
+
+#prepare the original testing dataset
+removeNA = sapply(1:dim(testing)[2],function(x)sum(is.na(testing[,x])))
+removeNACols = which(removeNA>0)
+testing=testing[, apply(testing, 2, function(x) !any(is.na(x)))] 
+testing=testing[,-c(1:7)]
+
+```
+
+### Create the cross validation dataset
+Partition the training dataset into at 60% training and 40% testing to see what type of errors we will receive and choose the more accurate model before applying it to the actual testing dataset.
+```{r cache=TRUE}
+# split the cleanTrainData into 75% and 25%
+inTrain <- createDataPartition(y=training$classe, p=0.60, list=FALSE)
+train<-training[inTrain,]
+test<-training[-inTrain,]
+```
+### Create the models
+First we will evaulate the accuracy of the two data models using cross validation
+
+1) Decision Tree 
+
+2)  Random Forrest 
+
+```{r cache=TRUE}
+# Decision Trees
+modTree <- train(classe ~ .,method='rpart',data=train)
+predTree <- predict(modTree,test)
+
+# Random Forrest
+modForrest <-randomForest(classe~., data=train, method='class')
+predForrest <- predict(modForrest,test )
+
+```
+### Evaluate the models
+Determine the accuracy of the models by using the predict function on the training (test - which was not part that was used to create the model) dataset against both the Decision Tree model (modTree) and the Random Forrest Model (modForrest).   
+
+#### Accuracy of the Decision Tree Model
+We are not expecting the greatest results with the Decision Trees and as the accurancy shows, we have under 50% accuracy rate
+```{r cache=TRUE}
+confusionMatrix(predTree, test$classe)
+```
+
+
+#### Accuracy of the Random Forrest Model
+The accuracy of the Random Forrest model is fairly accurate to about 99.26%.  We will choose this as our prediction model.
+```{r cache=TRUE}
+confusionMatrix(predForrest, test$classe)
+```
+
+We can see that the results for the Random Forrest are very high with a 99% accuracy rate
+
+### Prediction of the testing dataset
+
+```{r cache=TRUE}
+predSubmission <- listing<-predict(modForrest,testing,type='class')
+listing
+```
+
+
+
+```
